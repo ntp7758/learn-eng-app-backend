@@ -1,0 +1,104 @@
+package repository
+
+import (
+	"learn-eng-app-backend/internal/domain"
+	"learn-eng-app-backend/pkg/db"
+
+	"gorm.io/gorm"
+)
+
+type WordRepository interface {
+	Get(id uint) (words *domain.Word, err error)
+	GetByWord(w string) (word *domain.Word, err error)
+	GetByWordAndPartsOfSpeech(w string, pos string) (word *domain.Word, err error)
+	GetAll() (words []domain.Word, err error)
+	Add(word domain.Word) error
+	Update(word domain.Word) error
+	Delete(id uint) error
+	PermanentDelete(id uint) error
+}
+
+type wordRepository struct {
+	db *gorm.DB
+}
+
+func NewWordRepository(db db.PostgreSQLDBClient) (WordRepository, error) {
+	dbClient := db.GetDB()
+	err := dbClient.AutoMigrate(domain.Word{})
+	if err != nil {
+		return nil, err
+	}
+	return &wordRepository{db: dbClient}, nil
+}
+
+func (r *wordRepository) Add(word domain.Word) error {
+	tx := r.db.Create(&word)
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	return nil
+}
+
+func (r *wordRepository) GetAll() (words []domain.Word, err error) {
+	tx := r.db.Preload("Meanings").Find(&words)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	return words, nil
+}
+
+func (r *wordRepository) Get(id uint) (word *domain.Word, err error) {
+	tx := r.db.Preload("Meanings").First(word, id)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	return word, nil
+}
+
+func (r *wordRepository) GetByWord(w string) (word *domain.Word, err error) {
+	tx := r.db.Where("word = ?", w).Preload("Meanings").Take(&word)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	return word, nil
+}
+
+func (r *wordRepository) GetByWordAndPartsOfSpeech(w string, pos string) (word *domain.Word, err error) {
+	tx := r.db.Where("word = ?", w).Where("parts_of_speech = ?", pos).Preload("Meanings").Take(&word)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	return word, nil
+}
+
+func (r *wordRepository) Update(word domain.Word) error {
+	tx := r.db.Save(&word)
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	return nil
+}
+
+func (r *wordRepository) Delete(id uint) error {
+	tx := r.db.Delete(&domain.Word{}, id)
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	return nil
+}
+
+func (r *wordRepository) PermanentDelete(id uint) error {
+	tx := r.db.Unscoped().Delete(&domain.Word{}, id)
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	return nil
+}
