@@ -7,6 +7,7 @@ import (
 	"learn-eng-app-backend/pkg/db"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 func main() {
@@ -31,6 +32,8 @@ func main() {
 	wordHandler := handler.NewWordHandler(wordUsecase)
 
 	app := fiber.New()
+
+	app.Use(cors.New())
 
 	app.Get("/get-all", wordHandler.GetAllWord)
 	app.Post("/add-word-or-meaning", wordHandler.AddWord)

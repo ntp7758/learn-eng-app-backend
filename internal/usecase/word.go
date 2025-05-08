@@ -104,6 +104,7 @@ func (u *wordUsecase) AddWord(req domain.WordRequest) error {
 					return err
 				}
 				w.Meanings = append(w.Meanings, m)
+				checkUpdate = true
 			}
 		}
 
