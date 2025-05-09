@@ -24,7 +24,7 @@ type Word struct {
 	Category      string
 	Score         float32
 	PartsOfSpeech string
-	GuessAccuracy WordGuessAccuracy // 1-1
+	GuessAccuracy GuessAccuracy // 1-1
 }
 
 type Meaning struct {
@@ -32,7 +32,7 @@ type Meaning struct {
 	Text string `gorm:"unique"`
 }
 
-type WordGuessAccuracy struct {
+type GuessAccuracy struct {
 	gorm.Model
 	WordID  string
 	Total   int
@@ -60,4 +60,9 @@ type WordGuessAccuracyResponse struct {
 	Total   int `json:"total"`
 	Correct int `json:"correct"`
 	Wrong   int `json:"wrong"`
+}
+
+type UpdateWordQuizzRequest struct {
+	WordID  string `json:"wordID"`
+	Correct bool   `json:"correct"`
 }

@@ -1,8 +1,10 @@
 package repository
 
 import (
+	"fmt"
 	"learn-eng-app-backend/internal/domain"
 	"learn-eng-app-backend/pkg/db"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -14,6 +16,8 @@ type WordRepository interface {
 	GetAll() (words []domain.Word, err error)
 	Add(word domain.Word) error
 	Update(word domain.Word) error
+	UpdateAccuracy(word domain.Word) error
+	BatchUpdateScores(records []domain.Word, batchSize int) error
 	Delete(id uint) error
 	PermanentDelete(id uint) error
 }
@@ -50,7 +54,7 @@ func (r *wordRepository) GetAll() (words []domain.Word, err error) {
 }
 
 func (r *wordRepository) Get(id uint) (word *domain.Word, err error) {
-	tx := r.db.Preload("Meanings").First(word, id)
+	tx := r.db.Preload("Meanings").Preload("GuessAccuracy").First(&word, id)
 	if tx.Error != nil {
 		return nil, tx.Error
 	}
@@ -82,6 +86,47 @@ func (r *wordRepository) Update(word domain.Word) error {
 		return tx.Error
 	}
 
+	return nil
+}
+
+func (r *wordRepository) UpdateAccuracy(word domain.Word) error {
+	tx := r.db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&word)
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	return nil
+}
+
+func (r *wordRepository) BatchUpdateScores(records []domain.Word, batchSize int) error {
+	for i := 0; i < len(records); i += batchSize {
+		end := i + batchSize
+		if end > len(records) {
+			end = len(records)
+		}
+
+		batch := records[i:end]
+
+		var ids []string
+		var cases []string
+
+		for _, rec := range batch {
+			ids = append(ids, fmt.Sprintf("%d", rec.ID))
+			cases = append(cases, fmt.Sprintf("WHEN %d THEN %f", rec.ID, rec.Score))
+		}
+
+		sql := fmt.Sprintf(`
+            UPDATE words
+            SET score = CASE id
+                %s
+            END
+            WHERE id IN (%s)
+        `, strings.Join(cases, " "), strings.Join(ids, ","))
+
+		if err := r.db.Exec(sql).Error; err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

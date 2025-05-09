@@ -26,6 +26,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	_, err = repository.NewGuessAccuracyRepository(dbClient)
+	if err != nil {
+		panic(err)
+	}
 
 	wordUsecase := usecase.NewWordUsecase(wordRepo, meaningRepo)
 
@@ -36,7 +40,9 @@ func main() {
 	app.Use(cors.New())
 
 	app.Get("/get-all", wordHandler.GetAllWord)
+	app.Get("/get-random-word", wordHandler.GetRandomWord)
 	app.Post("/add-word-or-meaning", wordHandler.AddWord)
+	app.Post("/update-word-score", wordHandler.UpdateWordAccuracy)
 
 	app.Listen(":8080")
 }

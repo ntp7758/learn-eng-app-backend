@@ -10,6 +10,8 @@ import (
 type WordHandler interface {
 	GetAllWord(c *fiber.Ctx) error
 	AddWord(c *fiber.Ctx) error
+	GetRandomWord(c *fiber.Ctx) error
+	UpdateWordAccuracy(c *fiber.Ctx) error
 }
 
 type wordHandler struct {
@@ -44,6 +46,41 @@ func (h *wordHandler) AddWord(c *fiber.Ctx) error {
 	}
 
 	err = h.wordUsecase.AddWord(req)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "success",
+	})
+}
+
+func (h *wordHandler) GetRandomWord(c *fiber.Ctx) error {
+	word, err := h.wordUsecase.GetRandomWord()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "success",
+		"data":    word,
+	})
+}
+
+func (h *wordHandler) UpdateWordAccuracy(c *fiber.Ctx) error {
+	var req domain.UpdateWordQuizzRequest
+	err := c.BodyParser(&req)
+	if err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	err = h.wordUsecase.UpdateWordAccuracy(req)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
